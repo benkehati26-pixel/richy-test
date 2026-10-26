@@ -36,10 +36,12 @@ export async function readFile(file){
 }
 export const snapshot = sh => ({ name:sh.name, columns:sh.cols, rows:sh.rows.filter(r=>r.some(v=>v!=='')).slice(0,200), totalRows:sh.rows.length });
 
+let EP; async function endpoint(){ if(EP) return EP; try{ const r=await fetch('endpoint.json?t='+Date.now(),{cache:'no-store'}); EP=(await r.json()).url; }catch{} return EP||'api/ai'; }
+
 export async function askAI({prompt, files, state, history, demo}){
   const payload={prompt, files, sheet:snapshot(state.sheets[state.active]), sheets:state.sheets.map(s=>s.name), history:history.slice(-6)};
   if(!demo){
-    try{ const res=await fetch('api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    try{ const res=await fetch(await endpoint(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const j=await res.json(); if(res.ok) return j; if(res.status!==503) throw new Error(j.error||res.statusText);
       const m=mockAI(payload); m.explanation='(אין מפתח Gemini בשרת – עניתי במצב הדגמה)\n'+m.explanation; return m;
     }catch(e){ if(String(e).includes('Failed to fetch')){ const m=mockAI(payload); m.explanation='(השרת לא זמין – מצב הדגמה)\n'+m.explanation; return m; } throw e; }
