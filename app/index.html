@@ -42,4 +42,4 @@
 </main>
 <footer id="tabs"></footer>
 <script type="module" src="app.js"></script>
-<script>if(sessionStorage.getItem("richy_role")!=="admin"){document.addEventListener("DOMContentLoaded",()=>{["expXlsx","expCsv"].forEach(i=>{const e=document.getElementById(i);if(e)e.remove()});const b=document.querySelector(".brand");if(b)b.insertAdjacentHTML("beforeend"," <span class=\"sub\">· אורח</span>")})}else{document.addEventListener("DOMContentLoaded",()=>{const b=document.querySelector(".brand");if(b)b.insertAdjacentHTML("beforeend"," <span class=\"sub\">· מנהל</span>")})}</script></body></html>
+<script>if(sessionStorage.getItem("richy_role")!=="admin"){document.addEventListener("DOMContentLoaded",()=>{["expXlsx","expCsv"].forEach(i=>{const e=document.getElementById(i);if(e)e.style.display="none"});const b=document.querySelector(".brand");if(b)b.insertAdjacentHTML("beforeend"," <span class=\"sub\">· אורח</span>")})}else{document.addEventListener("DOMContentLoaded",()=>{const b=document.querySelector(".brand");if(b)b.insertAdjacentHTML("beforeend"," <span class=\"sub\">· מנהל</span>")})}</script></body></html>
