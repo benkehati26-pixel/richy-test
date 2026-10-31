@@ -24,12 +24,16 @@ async function docxText(buf){ // DOCX = zip; נשתמש ב‑SheetJS CFB לפת�
   try{ const z=XLSX.CFB.read(new Uint8Array(buf),{type:'array'}); const f=XLSX.CFB.find(z,'word/document.xml'); const xml=new TextDecoder().decode(f.content);
     return xml.replace(/<\/w:p>/g,'\n').replace(/<w:tab\/>/g,'\t').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'); }catch(e){ return ''; }
 }
+async function shrinkImg(file){ // תמונות גדולות מהטלפון → JPEG עד 2000px
+  try{ const bm=await createImageBitmap(file); const k=Math.min(1,2000/Math.max(bm.width,bm.height)); if(k===1&&file.size<1.5e6&&/jpe?g|png|webp/.test(file.type)) return null;
+    const cv=document.createElement('canvas'); cv.width=Math.round(bm.width*k); cv.height=Math.round(bm.height*k); cv.getContext('2d').drawImage(bm,0,0,cv.width,cv.height); return cv.toDataURL('image/jpeg',.85).split(',')[1]; }catch{ return null; }
+}
 export async function readFile(file){
   const buf=await file.arrayBuffer(); const n=file.name.toLowerCase(); const r={name:file.name, mime:file.type||'application/octet-stream'};
-  if(n.endsWith('.pdf')){ const {text,images}=await pdfText(buf); r.text=text; if(text.trim().length<40){ r.images=images; if(buf.byteLength<15e6) r.data=b64(buf), r.mime='application/pdf'; } }
+  if(n.endsWith('.pdf')){ const {text,images}=await pdfText(buf); r.text=text; if(buf.byteLength<8e6){ r.data=b64(buf); r.mime='application/pdf'; } else if(text.trim().length<40) r.images=images; }
   else if(/\.(xlsx|xls|csv)$/.test(n)){ const wb=XLSX.read(buf,{type:'array'}); r.text=wb.SheetNames.map(s=>`### ${s}\n`+XLSX.utils.sheet_to_csv(wb.Sheets[s],{FS:'\t'})).join('\n'); r.table=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''}); }
   else if(n.endsWith('.docx')) r.text=await docxText(buf);
-  else if(/^image\//.test(file.type)) r.data=b64(buf);
+  else if(/^image\//.test(file.type)||/\.(heic|heif|jpe?g|png|webp)$/.test(n)){ const sm=await shrinkImg(file); if(sm){ r.data=sm; r.mime='image/jpeg'; } else { r.data=b64(buf); r.mime=file.type||(/\.hei[cf]$/.test(n)?'image/heic':'image/jpeg'); } }
   else r.text=new TextDecoder().decode(buf);
   if(r.text && r.text.length>60000) r.text=r.text.slice(0,60000)+'\n…(קוצר)';
   return r;
