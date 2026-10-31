@@ -1,6 +1,6 @@
 import { evaluate, colLetter, toNum } from './formula.js';
 import { newSheet, applyOps, describe, test } from './ops.js';
-import { readFile, askAI } from './ai.js';
+import { readFile, askAI, getKey, setKey, KEY_HELP } from './ai.js';
 const $=s=>document.querySelector(s); const KEY='tavloni-state-v1';
 let state = JSON.parse(localStorage.getItem(KEY)||'null') || { sheets:[newSheet('גיליון 1',['שם','כמות','מחיר','סה״כ'])], active:0 };
 let undo=[], redo=[], sel={r:-1,c:-1}, attached=[], history=[];
@@ -79,6 +79,8 @@ $('#expCsv').onclick=()=>{ const csv='\ufeff'+XLSX.utils.sheet_to_csv(XLSX.utils
 $('#toggleChat').onclick=()=>$('#chat').classList.toggle('hide');
 const demoBox=$('#demoMode'); demoBox.checked=localStorage.getItem('tavloni-demo')==='1'||new URLSearchParams(location.search).has('demo'); demoBox.onchange=()=>localStorage.setItem('tavloni-demo',demoBox.checked?'1':'0');
 function msg(cls,html){ const d=document.createElement('div'); d.className='m '+cls; d.innerHTML=html; $('#msgs').append(d); $('#msgs').scrollTop=1e9; return d; }
+$('#keyBtn').onclick=()=>{ const cur=getKey(); const v=window.prompt('הדבק כאן את מפתח ה‑Gemini האישי שלך (מ‑aistudio.google.com/apikey).\nהמפתח נשמר רק בדפדפן הזה. השאר ריק כדי למחוק.', cur?cur.slice(0,6)+'…':''); if(v===null||v.endsWith('…')) return; setKey(v); msg('a', v.trim()?'✅ המפתח נשמר בדפדפן שלך.':'המפתח נמחק.'); };
+if(!getKey()) setTimeout(()=>msg('a',esc(KEY_HELP)),0);
 msg('a','היי! 👋 אני העוזר של ריצ׳י. אפשר לצרף קובץ (PDF, תמונה, אקסל, CSV, Word) ולכתוב מה לעשות, למשל:\n• "תעשה טבלה רק של עמודים עם סטייה מעל 5 ס״מ"\n• "תמיין לפי תאריך ותוסיף סה״כ"\n• "תדגיש באדום מעל 100"');
 $('#chatFile').onchange=async e=>{ for(const f of e.target.files){ const tag=document.createElement('span'); tag.textContent='⏳ '+f.name; $('#attached').append(tag);
     try{ attached.push(await readFile(f)); tag.textContent='📄 '+f.name+' ✖'; tag.onclick=()=>{ attached=attached.filter(a=>a.name!==f.name); tag.remove(); }; }catch(err){ tag.textContent='⚠️ '+f.name; console.error(err); } } e.target.value=''; };
@@ -93,7 +95,7 @@ $('#chatForm').onsubmit=async e=>{ e.preventDefault(); const prompt=$('#prompt')
         wait.querySelector('.row').innerHTML='<span>✅ הוחל</span> <button class="undoit">↶ בטל</button>';
         wait.querySelector('.undoit').onclick=()=>{ if(undo.length>=before){ doUndo(); wait.querySelector('.row').innerHTML='<span>↶ בוטל</span>'; } }; };
       wait.querySelector('.skip').onclick=()=>wait.querySelector('.row').innerHTML='<span>דילגתי</span>'; }
-  }catch(err){ wait.textContent='אופס, משהו השתבש: '+err.message; } $('#send').disabled=false; };
+  }catch(err){ wait.textContent=(err.code?'':'אופס, משהו השתבש: ')+err.message; } $('#send').disabled=false; };
 if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
 window.__tavloni={get state(){return state}};
 render();

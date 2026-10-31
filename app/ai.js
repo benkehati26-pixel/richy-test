@@ -42,13 +42,19 @@ export const snapshot = sh => ({ name:sh.name, columns:sh.cols, rows:(r=>{r=r.sl
 
 let EP; async function endpoint(){ if(EP) return EP; try{ const r=await fetch('endpoint.json?t='+Date.now(),{cache:'no-store'}); EP=(await r.json()).url; }catch{} return EP||'api/ai'; }
 
+export const KEY_LS='richi-gemini-key';
+export const getKey=()=>{ try{ return (localStorage.getItem(KEY_LS)||'').trim(); }catch{ return ''; } };
+export const setKey=k=>{ try{ k?localStorage.setItem(KEY_LS,k.trim()):localStorage.removeItem(KEY_LS); }catch{} };
+export const KEY_HELP='🔑 כדי להשתמש בצ׳אט צריך מפתח Gemini אישי וחינמי (לכל משתמש מכסה משלו):\n1. היכנס ל‑aistudio.google.com/apikey עם חשבון Google\n2. לחץ "Create API key" והעתק את המפתח\n3. כאן בצ׳אט לחץ ⚙️ והדבק את המפתח\nהמפתח נשמר רק בדפדפן שלך ונשלח רק ל‑Google דרך השרת של ריצ׳י (לא נשמר שם).';
 export async function askAI({prompt, files, state, history, demo}){
   const payload={prompt, files, sheet:snapshot(state.sheets[state.active]), sheets:state.sheets.map(s=>s.name), history:history.slice(-6)};
   if(!demo){
-    try{ const res=await fetch(await endpoint(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      const j=await res.json(); if(res.ok) return j; if(res.status!==503) throw new Error(j.error||res.statusText);
-      const m=mockAI(payload); m.explanation='(אין מפתח Gemini בשרת – עניתי במצב הדגמה)\n'+m.explanation; return m;
-    }catch(e){ if(String(e).includes('Failed to fetch')){ const m=mockAI(payload); m.explanation='(השרת לא זמין – מצב הדגמה)\n'+m.explanation; return m; } throw e; }
+    const key=getKey(); if(!key){ const e=new Error(KEY_HELP); e.code='NO_KEY'; throw e; }
+    let res; try{ res=await fetch(await endpoint(),{method:'POST',headers:{'Content-Type':'application/json','X-Gemini-Key':key},body:JSON.stringify(payload)}); }
+    catch(e){ throw new Error('אין חיבור לשרת ה‑AI. בדוק את החיבור לאינטרנט ונסה שוב.'); }
+    let j={}; try{ j=await res.json(); }catch{}
+    if(res.ok) return j;
+    const e=new Error((j.code==='NO_KEY'||j.code==='BAD_KEY')? (j.error+'\n\n'+KEY_HELP) : (j.error||('שגיאה '+res.status))); e.code=j.code; throw e;
   }
   return mockAI(payload);
 }
