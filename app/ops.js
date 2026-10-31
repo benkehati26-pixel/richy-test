@@ -38,7 +38,7 @@ export function applyOps(state, ops){
         state.sheets.push(newSheet(name, cols, rows)); state.active=state.sheets.length-1; break; }
       case 'select_sheet': { const i=state.sheets.findIndex(s=>s.name===op.name); if(i>=0) state.active=i; break; }
       case 'clear_sheet': sh.rows=[]; sh.fmt={}; sh.rules=[]; break;
-      case 'set_cells': for(const {row,col,value} of op.cells||[]){ const c=findCol(sh,col); if(c<0) continue;
+      case 'set_cells': for(const {row,col,value} of (op.cells||[]).flatMap(x=>x&&x.cells?x.cells:[x])){ const c=findCol(sh,col); if(c<0||!Number.isInteger(+row)||+row<0) continue;
           while(sh.rows.length<=row) sh.rows.push(sh.cols.map(()=>'')); sh.rows[row][c]=value; } break;
       case 'add_rows': trimEmpty(sh); for(const r of op.rows||[]) sh.rows.push(Array.isArray(r)?sh.cols.map((_,i)=>r[i]??''):sh.cols.map(c=>r[c]??'')); break;
       case 'add_column': { const at = op.after!=null ? findCol(sh,op.after)+1 : sh.cols.length;

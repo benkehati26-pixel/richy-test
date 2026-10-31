@@ -34,7 +34,7 @@ export async function readFile(file){
   if(r.text && r.text.length>60000) r.text=r.text.slice(0,60000)+'\n…(קוצר)';
   return r;
 }
-export const snapshot = sh => ({ name:sh.name, columns:sh.cols, rows:sh.rows.filter(r=>r.some(v=>v!=='')).slice(0,200), totalRows:sh.rows.length });
+export const snapshot = sh => ({ name:sh.name, columns:sh.cols, rows:(r=>{r=r.slice(); while(r.length&&r[r.length-1].every(v=>v===''||v==null)) r.pop(); return r;})(sh.rows).slice(0,200), totalRows:sh.rows.length });
 
 let EP; async function endpoint(){ if(EP) return EP; try{ const r=await fetch('endpoint.json?t='+Date.now(),{cache:'no-store'}); EP=(await r.json()).url; }catch{} return EP||'api/ai'; }
 
